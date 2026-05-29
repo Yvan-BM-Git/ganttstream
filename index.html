@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <title>ResearchBoard · Trello académico para investigación</title>
+  <title>GanttStream · Tablero colaborativo para investigación</title>
   <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
-  <!-- Tabler Icons CDN (iconos modernos) -->
+  <!-- Tabler Icons CDN -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.4.0/dist/tabler-icons.min.css">
   <style>
     * {
@@ -24,7 +24,6 @@
       transition: background 0.2s;
     }
 
-    /* layout responsivo */
     .app-header {
       background: #1e2a3e;
       padding: 12px 16px;
@@ -249,37 +248,30 @@
 
 <script>
   // --------------------------------------------------------------
-  // 1. CONFIGURACIÓN FIREBASE (usa tu proyecto real)
-  //    PARA DEMO: debes reemplazar con credenciales de tu proyecto Firebase
+  // CONFIGURACIÓN DE FIREBASE - GanttStream
+  // Reemplaza con tus credenciales reales de Firebase Console
   // --------------------------------------------------------------
   const firebaseConfig = {
     apiKey: "AIzaSyDummyReplaceWithYourFirebaseConfig",
-    authDomain: "researchboard-fake.firebaseapp.com",
-    projectId: "researchboard-fake",
-    storageBucket: "researchboard-fake.appspot.com",
+    authDomain: "ganttstream.firebaseapp.com",
+    projectId: "ganttstream",
+    storageBucket: "ganttstream.appspot.com",
     messagingSenderId: "000000000000",
     appId: "1:000000000000:web:abcdef"
   };
-  // NOTA: En entorno real, reemplazar con credenciales de Firebase Console.
-  // Para hacer funcionar esta demo sin errores (modo local simulado) se hará
-  // una capa de emulación si no existen, pero el código está listo para Firebase real.
-  // Como la demo debe presentar la funcionalidad completa, se simulará con LocalStorage
-  // si Firebase no está disponible, pero se escribió para integrar Auth + Firestore.
-  // En esta entrega final, se implementará fallback local robusto y además la lógica
-  // completa de Firebase (autenticación Google, Storage, Firestore) para producción.
   
   // ---------- DECLARACIONES GLOBALES ----------
   let db, auth, storage, firestoreReady = false;
   let currentUser = null;
-  let currentBoardId = "defaultBoard";   // tablero único colaborativo
+  let currentBoardId = "defaultBoard";
   let state = {
     columns: [],
-    timers: {},      // { cardId: { startTime, intervalId, accumulated } }
+    timers: {},
     online: false
   };
   let unsubFirestore = null;
   
-  // Inicializar Firebase y la UI
+  // Inicializar Firebase
   async function initFirebase() {
     try {
       if (typeof firebase !== 'undefined') {
@@ -297,7 +289,6 @@
     } catch(e) {
       console.warn("Firebase no disponible, usando modo local demo", e);
       firestoreReady = false;
-      // modo local offline pero con features completas
       loadLocalDemoData();
       renderEntireApp();
     }
@@ -310,7 +301,6 @@
     } else if (user && !firestoreReady) {
       loadLocalDemoData();
     } else if (!user && firestoreReady) {
-      // no autenticado: mostrar login
       showLoginScreen();
     } else if (!user && !firestoreReady) {
       loadLocalDemoData();
@@ -327,7 +317,7 @@
       <div style="display:flex; justify-content:center; align-items:center; min-height:100vh; background:#eef2f5;">
         <div style="background:white; border-radius:28px; padding:32px; text-align:center; max-width:380px; margin:20px;">
           <i class="ti ti-brand-trello" style="font-size:48px; color:#0a66b9;"></i>
-          <h2 style="margin:16px 0 8px;">ResearchBoard</h2>
+          <h2 style="margin:16px 0 8px;">GanttStream</h2>
           <p>Tableros colaborativos para proyectos Fondecyt, papers e investigación</p>
           <button id="googleLoginBtn" style="background:#1e2a3e; border:none; color:white; padding:12px 24px; border-radius:40px; margin-top:24px; cursor:pointer; font-size:1rem;"><i class="ti ti-brand-google"></i> Acceder con Google</button>
         </div>
@@ -344,9 +334,8 @@
     });
   }
   
-  // Datos iniciales robustos con cronómetros y archivos
   function loadLocalDemoData() {
-    const stored = localStorage.getItem('research_trello_v2');
+    const stored = localStorage.getItem('ganttstream_data');
     if (stored) {
       state = JSON.parse(stored);
       if (!state.columns) state.columns = [];
@@ -365,7 +354,6 @@
       ];
     }
     if (!state.timers) state.timers = {};
-    // miembros predefinidos
     window.MEMBERS = [
       {id:'m1',name:'Dra. Ana López',initials:'AL',color:'#0a66b9'},
       {id:'m2',name:'Dr. Carlos Rivas',initials:'CR',color:'#61bd4f'},
@@ -378,7 +366,7 @@
   
   function saveLocal() { 
     let toStore = { columns: state.columns, timers: state.timers };
-    localStorage.setItem('research_trello_v2', JSON.stringify(toStore)); 
+    localStorage.setItem('ganttstream_data', JSON.stringify(toStore)); 
   }
   
   async function loadBoardFromFirestore() {
@@ -405,8 +393,6 @@
     saveLocal();
   }
   
-  // Funcionalidades completas: cronómetro + adjuntos + notificaciones/email (simuladas) + múltiples tableros (menú lateral)
-  // Renderizamos UI principal
   function renderEntireApp() {
     const appDiv = document.getElementById('app');
     if (!appDiv) return;
@@ -414,7 +400,7 @@
     const userInitial = (currentUser?.displayName?.[0] || currentUser?.email?.[0] || "U").toUpperCase();
     appDiv.innerHTML = `
       <div class="app-header">
-        <h1><i class="ti ti-layout-kanban"></i> ResearchBoard · Colaboración Científica</h1>
+        <h1><i class="ti ti-layout-kanban"></i> GanttStream · Planificación fluida para equipos de investigación</h1>
         <div class="header-right">
           <div style="display:flex; gap:4px" id="boardSelector"></div>
           <button class="filter-chip" id="filterBtn" style="background:#2c3e66"><i class="ti ti-filter"></i> Filtrar</button>
@@ -434,8 +420,6 @@
     `;
     document.getElementById('logoutBtn')?.addEventListener('click', () => { if(auth) auth.signOut(); else { currentUser=null; showLoginScreen(); } });
     document.getElementById('filterBtn')?.addEventListener('click', () => { const bar = document.getElementById('filterBar'); bar.style.display = bar.style.display === 'none' ? 'flex' : 'none'; });
-    // Sidebar multi-tablero: para efectos de demo se pueden simular proyectos, pero esencial: múltiples tableros por proyecto.
-    // Añadimos menú básico para cambiar entre proyectos Fondecyt
     const boardSelector = document.getElementById('boardSelector');
     if (boardSelector) {
       boardSelector.innerHTML = `<select id="projectSelect" style="background:#1e2a3e; color:white; border:1px solid #557; border-radius:20px; padding:6px 12px;">
@@ -458,7 +442,6 @@
     document.getElementById('filterOverdue')?.addEventListener('click', () => { activeFilters.overdue = !activeFilters.overdue; renderBoard(); });
     document.getElementById('filterSoon')?.addEventListener('click', () => { activeFilters.dueSoon = !activeFilters.dueSoon; renderBoard(); });
     document.getElementById('clearFilters')?.addEventListener('click', () => { activeFilters = { overdue: false, dueSoon: false, labels: [], members: [] }; renderBoard(); });
-    // labels quick
     const container = document.getElementById('filterLabelChips');
     if (container) {
       container.innerHTML = LABEL_COLORS.map(l => `<button class="filter-chip" style="background:${l.color}" data-label="${l.color}">${l.name}</button>`).join('');
@@ -581,10 +564,11 @@
     });
   }
   
-  // modal con subida de PDF, comentarios, checklist, etc.
   function openModal(cardId, colId) {
     let card = findCardById(cardId);
     if (!card) return;
+    // Guardar referencia para funciones auxiliares
+    window._currentModalCard = cardId;
     const modalHtml = `
       <div class="modal-backdrop" id="modalBackdrop">
         <div class="modal"><div class="modal-body" style="padding:24px;">
@@ -612,7 +596,6 @@
     document.getElementById('pdfUpload')?.addEventListener('change', async (e) => {
       const file = e.target.files[0]; if (!file || file.size > 20*1024*1024) return alert("Máx 20MB");
       if (!firestoreReady) { alert("Demo: Simulando adjunto PDF"); if(!card.attachments) card.attachments=[]; card.attachments.push({name:file.name, size:file.size, url: "#"}); syncToFirestore(); renderModalAttachments(card); return; }
-      // storage real
       const ref = storage.ref(`boards/${currentBoardId}/cards/${cardId}/${Date.now()}_${file.name}`);
       await ref.put(file);
       const url = await ref.getDownloadURL();
@@ -638,7 +621,7 @@
   window.toggleCheckItem = (cardId, idx) => { let c=findCardById(cardId); if(c){ c.checklist[idx].done = !c.checklist[idx].done; syncToFirestore(); renderModalChecklist(c); } };
   window.addCheckItem = () => { let card=findCardById(window._currentModalCard); if(card){ let inp=document.getElementById('newCheckItem'); if(inp.value.trim()){ card.checklist=card.checklist||[]; card.checklist.push({text:inp.value.trim(),done:false}); inp.value=""; syncToFirestore(); renderModalChecklist(card); } } };
   window.addCommentToCard = () => { let card=findCardById(window._currentModalCard); if(card){ let txt=document.getElementById('newComment'); if(txt.value.trim()){ let author=currentUser?.displayName||"Investigador"; card.comments=card.comments||[]; card.comments.push({author,text:txt.value.trim(),time:new Date().toLocaleString()}); txt.value=""; syncToFirestore(); renderModalComments(card); } } };
-  window.closeModal = () => { document.getElementById('modalContainer').innerHTML = ''; };
+  window.closeModal = () => { document.getElementById('modalContainer').innerHTML = ''; window._currentModalCard = null; };
   window.showAddCardForm = (colId) => { let title=prompt("Título tarjeta"); if(title){ let col=state.columns.find(c=>c.id===colId); col.cards.push({ id: Date.now()+"", title, labels:[], members:[], date:null, desc:"", comments:[], checklist:[], attachments:[], timerTotalSeconds:0 }); syncToFirestore(); renderBoard(); } };
   window.deleteColumn = (colId) => { if(confirm("Eliminar lista?")){ state.columns=state.columns.filter(c=>c.id!==colId); syncToFirestore(); renderBoard(); } };
   function addColumn() { let name=prompt("Nombre lista"); if(name) state.columns.push({ id: Date.now()+"", title: name, color: "#"+Math.floor(Math.random()*16777215).toString(16), cards: [] }); syncToFirestore(); renderBoard(); }
